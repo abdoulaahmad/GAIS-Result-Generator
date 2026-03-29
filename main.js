@@ -14,8 +14,10 @@ function userDataPath(...segments) {
   return path.join(app.getPath('userData'), ...segments);
 }
 
-// Configure auto-updater
-autoUpdater.checkForUpdatesAndNotify();
+// Configure auto-updater to run asynchronously (don't block startup)
+setTimeout(() => {
+  autoUpdater.checkForUpdatesAndNotify();
+}, 3000); // Check after 3 seconds
 
 function createWindow() {
   const win = new BrowserWindow({

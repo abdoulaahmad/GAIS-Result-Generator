@@ -64,6 +64,73 @@
     .btn-outline:hover  { background: #eff6ff; }
     .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 5px; }
 
+    /* ===== SPLASH SCREEN ===== */
+    .splash-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease-out;
+    }
+    .splash-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .splash-content {
+      text-align: center;
+      color: #fff;
+      animation: fadeIn 0.6s ease-in;
+    }
+    .splash-logo {
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      font-weight: 700;
+      margin: 0 auto 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .splash-content h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .splash-content p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 24px;
+    }
+    .splash-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: spin 1s linear infinite;
+    }
+    .splash-loading {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
     /* ===== APP HEADER ===== */
     .app-header {
       position: sticky; top: 0; z-index: 100;
@@ -224,6 +291,17 @@
 </head>
 <body>
 
+  <!-- ===== SPLASH SCREEN ===== -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <div class="splash-logo">G</div>
+      <h1>Great Albarka International School</h1>
+      <p>Report Card Generator</p>
+      <div class="splash-spinner"></div>
+      <p class="splash-loading">Loading...</p>
+    </div>
+  </div>
+
   <!-- ===== CUSTOM MODAL ===== -->
   <div id="customModal" class="modal-overlay">
     <div class="modal-box">
@@ -294,12 +372,12 @@
 
   <!-- ===== APP HEADER ===== -->
   <header class="app-header">
-    <img src="./assets/Picture1.png" alt="School Logo">
+    <div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:bold;">G</div>
     <div class="app-header-text">
       <h1>Great Albarka International School</h1>
       <p>Report Card Generator &mdash; Student Marks Entry System</p>
     </div>
-    <div class="app-header-info">&#128226; Fill all fields then click <strong>Generate Report</strong></div>
+    <div class="app-header-info">Fill all fields then click <strong>Generate Report</strong></div>
   </header>
 
   <div class="main-wrap">
@@ -1124,8 +1202,8 @@
         body.insertAdjacentHTML('beforeend',
           `<tr class="${rowClass}">
             <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-            <td><strong>${medal} ${s.name}</strong></td>
-            <td>${s.className||currentClass}</td>
+            <td><strong>${medal} ${s.studentName}</strong></td>
+            <td>${s.studentClass||currentClass}</td>
             <td>${s.term||'-'}</td>
             <td style="text-align:center;font-weight:600;">${s.totalScore||0}</td>
             <td style="text-align:center;font-weight:600;color:${parseFloat(s.average) >= 70 ? '#16a34a' : parseFloat(s.average) >= 50 ? '#f59e0b' : '#dc2626'};">${s.average}</td>
@@ -1153,8 +1231,8 @@
             score = subjData ? subjData.score : null;
           }
           return {
-            name: s.name,
-            className: s.className || currentClass,
+            name: s.studentName,
+            className: s.studentClass || currentClass,
             score: score,
             grade: score === null ? '-' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : score >= 50 ? 'D' : 'F'
           };
@@ -1371,6 +1449,15 @@
 
     // ============ INIT ============
     window.addEventListener('DOMContentLoaded', () => {
+      // Hide splash screen after app loads
+      setTimeout(() => {
+        const splash = document.getElementById('splashScreen');
+        if (splash) {
+          splash.classList.add('hidden');
+          setTimeout(() => splash.style.display = 'none', 500);
+        }
+      }, 1500); // Show splash for 1.5 seconds
+      
       updateSubjectCount();
       if (window.electronAPI && typeof window.electronAPI.getClasses === 'function') {
         loadClasses();
