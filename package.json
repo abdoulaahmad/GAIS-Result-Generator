@@ -1,0 +1,67 @@
+{
+  "name": "report-card-generator",
+  "version": "1.0.0",
+  "description": "report card generator for O'leve;",
+  "license": "ISC",
+  "author": "void.ion",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron .",
+    "build": "electron-builder --win --publish never",
+    "build-publish": "electron-builder --win --publish always",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^38.3.0",
+    "electron-builder": "^24.6.4",
+    "file-saver": "^2.0.5",
+    "pdfkit": "^0.13.0",
+    "xlsx": "^0.18.5"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "docxtemplater": "^3.67.1",
+    "electron-updater": "^6.1.1",
+    "express": "^5.1.0",
+    "jspdf": "^3.0.4",
+    "pizzip": "^3.2.0"
+  },
+  "build": {
+    "appId": "com.oleve.reportcardgenerator",
+    "productName": "Report Card Generator",
+    "files": [
+      "main.js",
+      "preload.js",
+      "server.js",
+      "renderer/**/*",
+      "classes/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "forceCodeSigning": false,
+      "sign": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Report Card Generator"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "https://your-update-server.com/updates/"
+    }
+  }
+}

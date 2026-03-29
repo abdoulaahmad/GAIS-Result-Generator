@@ -1,0 +1,1083 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Card Generator – Great Albarka</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== DESIGN TOKENS ===== */
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);
+      --header-h: 68px;
+      --footer-h: 60px;
+    }
+
+    /* ===== RESET ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 14px; }
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: calc(var(--footer-h) + 16px);
+    }
+    label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--surface);
+      color: var(--text);
+      transition: border-color .15s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    input[readonly] { background: #f8fafc; color: var(--text-muted); cursor: default; }
+
+    /* ===== BUTTONS ===== */
+    .btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .btn-primary  { background: var(--primary); color: #fff; }
+    .btn-primary:hover  { background: var(--primary-hover); }
+    .btn-success  { background: var(--success); color: #fff; }
+    .btn-success:hover  { background: #15803d; }
+    .btn-danger   { background: var(--danger); color: #fff; }
+    .btn-danger:hover   { background: #b91c1c; }
+    .btn-ghost    { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover    { background: #f1f5f9; }
+    .btn-outline  { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+    .btn-outline:hover  { background: #eff6ff; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 5px; }
+
+    /* ===== APP HEADER ===== */
+    .app-header {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; gap: 14px;
+      height: var(--header-h);
+      padding: 0 24px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .app-header img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 2px solid rgba(255,255,255,.25); }
+    .app-header-text h1 { font-size: 16px; font-weight: 700; line-height: 1.2; }
+    .app-header-text p  { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 2px; }
+    .app-header-info { margin-left: auto; font-size: 12px; color: rgba(255,255,255,.75); background: rgba(255,255,255,.1); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,.2); }
+
+    /* ===== MAIN WRAP ===== */
+    .main-wrap { max-width: 960px; margin: 20px auto; padding: 0 16px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ===== CARD ===== */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .card-header {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 18px;
+      font-size: 14px; font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      background: #f8fafc;
+    }
+    .card-body { padding: 16px 18px; }
+
+    /* ===== TOOLBAR ===== */
+    .toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+    .toolbar-group { display: flex; flex-direction: column; min-width: 180px; }
+    .toolbar-group select { height: 36px; }
+    .toolbar-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
+
+    /* ===== STAT CHIPS ===== */
+    .stat-chips { display: none; gap: 8px; flex-wrap: wrap; padding: 10px 18px 12px; border-top: 1px solid var(--border); background: #f8fafc; }
+    .chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .chip-blue  { background: #dbeafe; color: #1d4ed8; }
+    .chip-green { background: #dcfce7; color: #16a34a; }
+    .chip-amber { background: #fef3c7; color: #b45309; }
+    .chip-red   { background: #fee2e2; color: #dc2626; }
+
+    /* ===== INFO GRID ===== */
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .field { display: flex; flex-direction: column; }
+
+    /* ===== MARKS TABLE ===== */
+    .marks-table-wrap { overflow-x: auto; }
+    .marks-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    .marks-table th {
+      background: #1e3a5f; color: #fff; padding: 10px 8px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px;
+      white-space: nowrap; text-align: center;
+    }
+    .marks-table td { border-bottom: 1px solid var(--border); padding: 6px 4px; text-align: center; vertical-align: middle; }
+    .marks-table tbody tr:hover { background: #f8fafc; }
+    .marks-table td input { width: 100%; min-width: 55px; text-align: center; padding: 5px 4px; border: 1px solid var(--border); border-radius: 5px; font-size: 12px; }
+    .marks-table td input:first-child { min-width: 150px; text-align: left; }
+
+    /* ===== GRADE BADGES ===== */
+    .grade-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .grade-A  { background: #dcfce7; color: #15803d; }
+    .grade-B  { background: #dbeafe; color: #1d4ed8; }
+    .grade-C  { background: #fef9c3; color: #a16207; }
+    .grade-D  { background: #ffedd5; color: #c2410c; }
+    .grade-E, .grade-F { background: #fee2e2; color: #b91c1c; }
+
+    /* ===== ACCORDION ===== */
+    .accordion { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .accordion-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 18px; cursor: pointer; user-select: none;
+      font-size: 14px; font-weight: 700;
+      border-left: 4px solid transparent;
+      transition: background .15s;
+    }
+    .accordion-header.psy { border-left-color: #6366f1; }
+    .accordion-header.aff { border-left-color: #f59e0b; }
+    .accordion-header:hover { background: #f8fafc; }
+    .accordion-arrow { font-size: 16px; color: var(--text-muted); transition: transform .2s; }
+    .accordion-header.open .accordion-arrow { transform: rotate(180deg); }
+    .accordion-body { display: none; padding: 16px 18px; border-top: 1px solid var(--border); background: #fafbfc; }
+    .accordion-body.open { display: block; }
+    .skill-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    /* ===== STICKY FOOTER ===== */
+    .sticky-footer {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      display: flex; justify-content: space-between; align-items: center;
+      height: var(--footer-h);
+      padding: 0 24px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 12px rgba(0,0,0,.08);
+    }
+    .sticky-footer-left, .sticky-footer-right { display: flex; gap: 10px; }
+
+    /* ===== LEADERBOARD TABLE ===== */
+    .leaderboard-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    .leaderboard-table th { background: #1e3a5f; color: #fff; padding: 10px 10px; text-align: left; font-size: 12px; }
+    .leaderboard-table td { border-bottom: 1px solid var(--border); padding: 9px 10px; }
+    .leaderboard-table tbody tr:nth-child(odd) { background: #f8fafc; }
+
+    /* ===== CUSTOM MODAL ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(3px);
+      justify-content: center; align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: var(--surface); border-radius: 12px; padding: 28px 32px;
+      width: 380px; box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .modal-box input { margin-bottom: 18px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-cancel  { padding: 8px 18px; border: 1px solid var(--border); border-radius: 7px; background: transparent; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; }
+    .btn-confirm { padding: 8px 18px; background: var(--primary); color: #fff; border: none; border-radius: 7px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; }
+    .btn-confirm:hover { background: var(--primary-hover); }
+
+    /* ===== SETTINGS PANEL ===== */
+    .settings-panel {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.4); justify-content: center; align-items: center;
+    }
+    .settings-panel.active { display: flex; }
+    .settings-box {
+      background: var(--surface); border-radius: 12px; padding: 28px;
+      width: 500px; max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .settings-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+
+    /* ===== CLASS SETTINGS PANEL ===== */
+    .class-settings-panel {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.4); justify-content: center; align-items: center;
+    }
+    .class-settings-panel.active { display: flex; }
+    .class-settings-box {
+      background: var(--surface); border-radius: 12px; padding: 28px;
+      width: 500px; max-height: 80vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .class-settings-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+    .class-settings-box .field { margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== CUSTOM MODAL ===== -->
+  <div id="customModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 id="modalTitle">Enter value</h3>
+      <input type="text" id="modalInput" placeholder="">
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal(false)">Cancel</button>
+        <button class="btn-confirm" onclick="closeModal(true)">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CLASS SETTINGS PANEL ===== -->
+  <div id="classSettingsPanel" class="class-settings-panel">
+    <div class="class-settings-box">
+      <h3>Class Settings</h3>
+      <div class="field">
+        <label>Academic Year</label>
+        <input type="text" id="settingAcademicYear" placeholder="e.g. 2024/2025">
+      </div>
+      <div class="field">
+        <label>Term</label>
+        <select id="settingTerm">
+          <option value="1st Term">1st Term</option>
+          <option value="2nd Term">2nd Term</option>
+          <option value="3rd Term">3rd Term</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Next Term Begins</label>
+        <input type="date" id="settingNextTermBegins">
+      </div>
+      <div class="field">
+        <label>Class Highest Score</label>
+        <input type="number" id="settingClassHighestScore" placeholder="e.g. 450">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+        <button class="btn-cancel" onclick="closeClassSettings()">Cancel</button>
+        <button class="btn-confirm" onclick="saveClassSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS PANEL ===== -->
+  <div id="settingsPanel" class="settings-panel">
+    <div class="settings-box">
+      <h3>Settings</h3>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Report Output Folder</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="outputFolderPath" readonly placeholder="Click Browse to select...">
+          <button class="btn btn-outline btn-sm" onclick="browseOutputFolder()">Browse</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+        <button class="btn-cancel" onclick="closeSettings()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== APP HEADER ===== -->
+  <header class="app-header">
+    <img src="./assets/Picture1.png" alt="School Logo">
+    <div class="app-header-text">
+      <h1>Great Albarka International School</h1>
+      <p>Report Card Generator &mdash; Student Marks Entry System</p>
+    </div>
+    <div class="app-header-info">&#128226; Fill all fields then click <strong>Generate Report</strong></div>
+  </header>
+
+  <div class="main-wrap">
+
+    <!-- ===== CLASS / STUDENT TOOLBAR ===== -->
+    <div class="card">
+      <div class="card-header">&#127891; Class &amp; Student Management</div>
+      <div class="card-body">
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <label>Class</label>
+            <select id="classSelector">
+              <option value="">-- Select Class --</option>
+            </select>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn btn-primary" onclick="createNewClass()">+ New Class</button>
+            <button class="btn btn-ghost" id="classSettingsBtn" onclick="openClassSettings()" style="display:none;">⚙️ Class Settings</button>
+            <button class="btn btn-ghost" onclick="openSettings()">&#9881;&#65039; Settings</button>
+            <button class="btn btn-ghost" onclick="testConnection()">&#128295; Test</button>
+          </div>
+          <div class="toolbar-group" id="templateSection" style="display:none;">
+            <label>Template</label>
+            <select id="templateSelector">
+              <option value="">-- Select Template --</option>
+            </select>
+          </div>
+          <div class="toolbar-actions" id="templateActions" style="display:none;">
+            <button class="btn btn-outline" onclick="uploadTemplate()">Upload Template</button>
+          </div>
+          <div class="toolbar-group" id="studentSection" style="display:none;">
+            <label>Student</label>
+            <select id="studentSelector">
+              <option value="">-- Select Student --</option>
+              <option value="new">+ New Student</option>
+            </select>
+          </div>
+          <div class="toolbar-actions" id="studentActions" style="display:none;">
+            <button class="btn btn-success" onclick="saveProgress()">&#128190; Save Draft</button>
+          </div>
+        </div>
+      </div>
+      <div id="classStats" class="stat-chips">
+        <span id="statTotal"   class="chip chip-blue">Total: 0</span>
+        <span id="statDone"    class="chip chip-green">Completed: 0</span>
+        <span id="statPending" class="chip chip-amber">Pending: 0</span>
+        <span id="statReports" class="chip chip-red">Reports: 0</span>
+      </div>
+    </div>
+
+    <!-- ===== STUDENT INFO + FORM ===== -->
+    <form id="reportForm">
+
+      <div class="card">
+        <div class="card-header">Student Information</div>
+        <div class="card-body">
+          <div class="info-grid">
+            <div class="field" style="grid-column:span 2;">
+              <label>Student Name</label>
+              <input type="text" id="studentName" required placeholder="Full name...">
+            </div>
+            <div class="field">
+              <label>Class</label>
+              <input type="text" id="studentClass" required placeholder="e.g. JSS 1A">
+            </div>
+            <div class="field">
+              <label>Term</label>
+              <select id="term">
+                <option>1st Term</option>
+                <option>2nd Term</option>
+                <option>3rd Term</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Academic Year</label>
+              <input type="text" id="academicYear" placeholder="2024/2025" required>
+            </div>
+            <div class="field">
+              <label>No. in Class</label>
+              <input type="number" id="numberInClass" required step="1" min="1" placeholder="e.g. 35">
+            </div>
+            <div class="field">
+              <label>Class Highest Score</label>
+              <input type="number" id="classHighestScore" required placeholder="e.g. 450">
+            </div>
+            <div class="field">
+              <label>Next Term Begins</label>
+              <input type="date" id="nextTermBegins">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SUBJECT MARKS ===== -->
+      <div class="card">
+        <div class="card-header">
+          Subject Marks
+          <span id="subjectCount" style="margin-left:auto;font-size:12px;font-weight:400;color:var(--text-muted);"></span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="marks-table-wrap">
+            <table id="marksTable" class="marks-table">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding-left:12px;">Subject</th>
+                  <th>Test 1&nbsp;/20</th>
+                  <th>Test 2&nbsp;/20</th>
+                  <th>Exam&nbsp;/60</th>
+                  <th>Total</th>
+                  <th>Grade</th>
+                  <th>Remark</th>
+                  <th style="width:36px;"></th>
+                </tr>
+              </thead>
+              <tbody id="subjectsBody">
+                <tr>
+                  <td style="text-align:left;padding-left:8px;"><input list="subjectsList" value="English Language" required style="min-width:150px;text-align:left;"></td>
+                  <td><input type="number" max="20" min="0"></td>
+                  <td><input type="number" max="20" min="0"></td>
+                  <td><input type="number" max="60" min="0"></td>
+                  <td><input readonly></td>
+                  <td></td><td></td>
+                  <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSubject(this)">&#10005;</button></td>
+                </tr>
+                <tr>
+                  <td style="text-align:left;padding-left:8px;"><input list="subjectsList" value="Mathematics" required style="min-width:150px;text-align:left;"></td>
+                  <td><input type="number" max="20" min="0"></td>
+                  <td><input type="number" max="20" min="0"></td>
+                  <td><input type="number" max="60" min="0"></td>
+                  <td><input readonly></td>
+                  <td></td><td></td>
+                  <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSubject(this)">&#10005;</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:12px 18px;display:flex;gap:14px;align-items:center;border-top:1px solid var(--border);background:#f8fafc;border-radius:0 0 var(--radius) var(--radius);">
+            <button type="button" class="btn btn-outline btn-sm" onclick="addSubject()">+ Add Subject</button>
+            <div style="display:flex;gap:16px;margin-left:auto;align-items:center;font-size:12px;color:var(--text-muted);">
+              <span>Credits:&nbsp;<input id="total_credit" readonly style="width:44px;height:28px;text-align:center;border:1px solid var(--border);border-radius:5px;font-size:12px;display:inline-block;"></span>
+              <span>Pass:&nbsp;<input id="total_pass" readonly style="width:38px;height:28px;text-align:center;border:1px solid var(--border);border-radius:5px;font-size:12px;display:inline-block;"></span>
+              <span>Fail:&nbsp;<input id="total_fail" readonly style="width:38px;height:28px;text-align:center;border:1px solid var(--border);border-radius:5px;font-size:12px;display:inline-block;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PSYCHOMOTOR SKILLS ===== -->
+      <div class="accordion">
+        <div class="accordion-header psy" onclick="toggleAccordion(this)">
+          &#127912; Psychomotor Skills <span class="accordion-arrow">&#9662;</span>
+        </div>
+        <div class="accordion-body">
+          <div class="skill-grid">
+            <div class="field"><label>Handwriting</label>
+              <select id="psy_handwriting"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Fluency</label>
+              <select id="psy_fluency"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Games</label>
+              <select id="psy_games"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Craft</label>
+              <select id="psy_craft"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Drawing &amp; Painting</label>
+              <select id="psy_drawing_painting"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Handling Tools / Lab</label>
+              <select id="psy_handling_tools"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== AFFECTIVE DISPOSITION ===== -->
+      <div class="accordion">
+        <div class="accordion-header aff" onclick="toggleAccordion(this)">
+          &#11088; Affective Disposition <span class="accordion-arrow">&#9662;</span>
+        </div>
+        <div class="accordion-body">
+          <div class="skill-grid">
+            <div class="field"><label>Punctuality</label>
+              <select id="aff_punctuality"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Attendance</label>
+              <select id="aff_attendance"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Reliability</label>
+              <select id="aff_reliability"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Neatness</label>
+              <select id="aff_neatness"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Politeness</label>
+              <select id="aff_politeness"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Honesty</label>
+              <select id="aff_honesty"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Attitude to School Work</label>
+              <select id="aff_relationship_staff"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Relationship with Others</label>
+              <select id="aff_relationship_students"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Self-Control</label>
+              <select id="aff_self_control"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Leadership</label>
+              <select id="aff_responsibility"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Attentiveness</label>
+              <select id="aff_attentiveness"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Speaking / Handwriting</label>
+              <select id="aff_spiritual_cooperation"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+            <div class="field"><label>Perseverance</label>
+              <select id="aff_perseverance"><option>Excellent</option><option>Good</option><option>Poor</option></select></div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+    <!-- ===== LEADERBOARD ===== -->
+    <div class="card" id="leaderboard" style="display:none;">
+      <div class="card-header">&#127942; Leaderboard</div>
+      <div class="card-body" style="padding:0;">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Name</th><th>Class</th>
+              <th>Term</th><th>Total</th><th>Average</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- end .main-wrap -->
+
+  <!-- ===== STICKY FOOTER ===== -->
+  <div class="sticky-footer">
+    <div class="sticky-footer-left">
+      <button type="button" class="btn btn-ghost" onclick="showLeaderboard()">&#127942; Leaderboard</button>
+    </div>
+    <div class="sticky-footer-right">
+      <button type="button" class="btn btn-danger" onclick="clearAllForm()">&#128465;&#65039; Clear All</button>
+      <button type="button" class="btn btn-primary" onclick="calculateResults()">Generate Report</button>
+    </div>
+  </div>
+
+  <!-- ===== SUBJECT DATALIST ===== -->
+  <datalist id="subjectsList">
+    <option value="English Language">
+    <option value="Mathematics">
+    <option value="Basic Science">
+    <option value="Basic Technology">
+    <option value="Social Studies">
+    <option value="Civic Education">
+    <option value="Agricultural Science">
+    <option value="Home Economics">
+    <option value="Cultural &amp; Creative Arts">
+    <option value="Physical &amp; Health Education">
+    <option value="Computer Studies">
+    <option value="French">
+    <option value="Quantitative Reasoning">
+    <option value="Verbal Reasoning">
+    <option value="History">
+    <option value="Arabic">
+    <option value="Christian Religious Studies">
+    <option value="Islamic Religious Studies">
+    <option value="Biology">
+    <option value="Chemistry">
+    <option value="Physics">
+    <option value="Economics">
+    <option value="Government">
+    <option value="Geography">
+    <option value="Literature in English">
+    <option value="Further Mathematics">
+    <option value="Accounting">
+    <option value="Commerce">
+    <option value="Data Processing">
+  </datalist>
+
+  <script>
+    // ============ ELECTRON API SAFETY WRAPPER ============
+    if (!window.electronAPI) {
+      window.electronAPI = {
+        getClasses: async () => [],
+        createClass: async () => ({ success: true }),
+        getTemplates: async () => [],
+        getStudents: async () => [],
+        saveStudent: async () => ({ success: true }),
+        loadStudent: async () => ({ success: true, data: {} }),
+        getClassStats: async () => ({ totalStudents: 0, completed: 0, pending: 0, totalReports: 0 }),
+        generateStudentDocx: async () => ({ success: true, fileName: 'test.docx' }),
+        selectFile: async () => null,
+        uploadTemplate: async () => ({ success: false, error: 'Not in Electron' }),
+        openFolder: async () => {},
+        selectFolder: async () => null
+      };
+    }
+
+    // ============ CONFIG ============
+    const MAX_SUBJECTS = 20;
+    let currentClass = '';
+    let currentStudent = '';
+
+    // ============ ACCORDION ============
+    function toggleAccordion(header) {
+      header.classList.toggle('open');
+      const body = header.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    // ============ MODAL ============
+    let _modalResolve = null;
+    function showPromptModal(title, placeholder) {
+      return new Promise(resolve => {
+        _modalResolve = resolve;
+        document.getElementById('modalTitle').textContent = title;
+        const inp = document.getElementById('modalInput');
+        inp.placeholder = placeholder || '';
+        inp.value = '';
+        document.getElementById('customModal').classList.add('active');
+        setTimeout(() => inp.focus(), 50);
+        inp.onkeydown = e => {
+          if (e.key === 'Enter') closeModal(true);
+          if (e.key === 'Escape') closeModal(false);
+        };
+      });
+    }
+    function closeModal(confirmed) {
+      const val = document.getElementById('modalInput').value.trim();
+      document.getElementById('customModal').classList.remove('active');
+      if (_modalResolve) { _modalResolve(confirmed ? val : null); _modalResolve = null; }
+    }
+
+    // ============ SETTINGS ============
+    function openSettings() { document.getElementById('settingsPanel').classList.add('active'); }
+    function closeSettings() { document.getElementById('settingsPanel').classList.remove('active'); }
+    async function browseOutputFolder() {
+      try {
+        const folder = await window.electronAPI.selectFolder({ title: 'Select Output Folder' });
+        if (folder) document.getElementById('outputFolderPath').value = folder;
+      } catch(e) { console.error(e); }
+    }
+
+    // ============ CLASS SETTINGS ============
+    function openClassSettings() { document.getElementById('classSettingsPanel').classList.add('active'); }
+    function closeClassSettings() { document.getElementById('classSettingsPanel').classList.remove('active'); }
+    
+    async function loadClassSettings() {
+      if (!currentClass) return;
+      try {
+        const settings = await window.electronAPI.getClassSettings(currentClass);
+        document.getElementById('settingAcademicYear').value = settings.academicYear || '';
+        document.getElementById('settingTerm').value = settings.term || '1st Term';
+        document.getElementById('settingNextTermBegins').value = settings.nextTermBegins || '';
+        document.getElementById('settingClassHighestScore').value = settings.classHighestScore || '';
+      } catch(e) { console.error('Error loading class settings:', e); }
+    }
+    
+    async function saveClassSettings() {
+      if (!currentClass) return;
+      try {
+        const settings = {
+          academicYear: document.getElementById('settingAcademicYear').value,
+          term: document.getElementById('settingTerm').value,
+          nextTermBegins: document.getElementById('settingNextTermBegins').value,
+          classHighestScore: document.getElementById('settingClassHighestScore').value
+        };
+        const result = await window.electronAPI.saveClassSettings({ className: currentClass, settings });
+        if (result.success) {
+          closeClassSettings();
+          applyClassSettingsToForm();
+          alert('Class settings saved successfully!');
+        }
+      } catch(e) { console.error('Error saving class settings:', e); alert('Error saving settings'); }
+    }
+    
+    function applyClassSettingsToForm() {
+      // Apply the saved class settings to the form
+      const academicYear = document.getElementById('settingAcademicYear').value;
+      const term = document.getElementById('settingTerm').value;
+      const nextTermBegins = document.getElementById('settingNextTermBegins').value;
+      const classHighestScore = document.getElementById('settingClassHighestScore').value;
+      
+      if (academicYear) document.getElementById('academicYear').value = academicYear;
+      if (term) document.getElementById('term').value = term;
+      if (nextTermBegins) document.getElementById('nextTermBegins').value = nextTermBegins;
+      if (classHighestScore) document.getElementById('classHighestScore').value = classHighestScore;
+    }
+
+    // ============ SUBJECT MANAGEMENT ============
+    function updateSubjectCount() {
+      const el = document.getElementById('subjectCount');
+      const body = document.getElementById('subjectsBody');
+      if (el && body) el.textContent = `Subjects: ${body.children.length} / ${MAX_SUBJECTS}`;
+    }
+
+    function addSubject() {
+      const body = document.getElementById('subjectsBody');
+      if (!body) return;
+      if (body.children.length >= MAX_SUBJECTS) { alert('Maximum 20 subjects allowed.'); return; }
+      body.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td style="text-align:left;padding-left:8px;"><input list="subjectsList" placeholder="Select subject" required style="min-width:150px;text-align:left;"></td>
+          <td><input type="number" max="20" min="0"></td>
+          <td><input type="number" max="20" min="0"></td>
+          <td><input type="number" max="60" min="0"></td>
+          <td><input readonly></td>
+          <td></td><td></td>
+          <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSubject(this)">&#10005;</button></td>
+        </tr>`);
+      updateSubjectCount();
+    }
+
+    function removeSubject(btn) {
+      const body = document.getElementById('subjectsBody');
+      if (!body) return;
+      if (body.children.length <= 2) { alert('English and Mathematics are compulsory.'); return; }
+      btn.closest('tr').remove();
+      updateSubjectCount();
+    }
+
+    // ============ GRADE CALCULATION ============
+    function getGrade(score) {
+      if (score >= 70) return { grade: 'A', remark: 'Excellent' };
+      if (score >= 60) return { grade: 'B', remark: 'Very Good' };
+      if (score >= 50) return { grade: 'C', remark: 'Good' };
+      if (score >= 40) return { grade: 'D', remark: 'Pass' };
+      return { grade: 'E', remark: 'Fail' };
+    }
+
+    // ============ CALCULATE / AUTO-UPDATE ============
+    function calculateFormData() {
+      const body = document.getElementById('subjectsBody');
+      const subjects = [];
+      let totalSum = 0, pass = 0, fail = 0;
+
+      if (body) {
+        [...body.children].forEach(row => {
+          const inputs = row.querySelectorAll('input');
+          const subject = inputs[0].value;
+          const test1 = +inputs[1].value || 0;
+          const test2 = +inputs[2].value || 0;
+          const exam  = +inputs[3].value || 0;
+          const total = test1 + test2 + exam;
+          inputs[4].value = total;
+          const { grade, remark } = getGrade(total);
+          row.cells[5].innerHTML = `<span class="grade-badge grade-${grade}">${grade}</span>`;
+          row.cells[6].innerText = remark;
+          totalSum += total;
+          if (total >= 40) pass++; else fail++;
+          subjects.push({ subject, test1, test2, exam, score: total, grade, remark });
+        });
+        document.getElementById('total_credit').value = body.children.length;
+        document.getElementById('total_pass').value   = pass;
+        document.getElementById('total_fail').value   = fail;
+      }
+
+      return {
+        studentName:       document.getElementById('studentName').value,
+        studentClass:      document.getElementById('studentClass').value,
+        term:              document.getElementById('term').value,
+        academicYear:      document.getElementById('academicYear').value,
+        numberInClass:     document.getElementById('numberInClass').value,
+        classHighestScore: document.getElementById('classHighestScore').value,
+        nextTermBegins:    document.getElementById('nextTermBegins').value,
+        subjects,
+        psychomotor: {
+          Handwriting:       document.getElementById('psy_handwriting').value,
+          Fluency:           document.getElementById('psy_fluency').value,
+          Games:             document.getElementById('psy_games').value,
+          Craft:             document.getElementById('psy_craft').value,
+          Drawing:           document.getElementById('psy_drawing_painting').value,
+          'Handling Tools':  document.getElementById('psy_handling_tools').value
+        },
+        affective: {
+          Punctuality:       document.getElementById('aff_punctuality').value,
+          Attendance:        document.getElementById('aff_attendance').value,
+          Reliability:       document.getElementById('aff_reliability').value,
+          Neatness:          document.getElementById('aff_neatness').value,
+          Politeness:        document.getElementById('aff_politeness').value,
+          Honesty:           document.getElementById('aff_honesty').value,
+          'Staff Relation':  document.getElementById('aff_relationship_staff').value,
+          'Student Relation':document.getElementById('aff_relationship_students').value,
+          'Self Control':    document.getElementById('aff_self_control').value,
+          Responsibility:    document.getElementById('aff_responsibility').value,
+          Attentiveness:     document.getElementById('aff_attentiveness').value,
+          'Spiritual Cooperation': document.getElementById('aff_spiritual_cooperation').value,
+          Perseverance:      document.getElementById('aff_perseverance').value
+        }
+      };
+    }
+
+    // ============ FORM HELPERS ============
+    function clearForm() {
+      document.getElementById('studentName').value = '';
+      document.getElementById('studentClass').value = currentClass || '';
+      document.getElementById('term').selectedIndex = 0;
+      document.getElementById('academicYear').value = '';
+      document.getElementById('numberInClass').value = '';
+      document.getElementById('classHighestScore').value = '';
+      const body = document.getElementById('subjectsBody');
+      if (body) {
+        while (body.children.length > 2) body.lastChild.remove();
+        [...body.querySelectorAll('tr')].forEach((row, i) => {
+          const inputs = row.querySelectorAll('input');
+          inputs[0].value = i === 0 ? 'English Language' : 'Mathematics';
+          for (let j = 1; j < inputs.length; j++) inputs[j].value = '';
+          row.cells[5].innerHTML = '';
+          row.cells[6].innerText = '';
+        });
+      }
+      ['psy_handwriting','psy_fluency','psy_games','psy_craft','psy_drawing_painting','psy_handling_tools',
+       'aff_punctuality','aff_attendance','aff_reliability','aff_neatness','aff_politeness','aff_honesty',
+       'aff_relationship_staff','aff_relationship_students','aff_self_control','aff_responsibility',
+       'aff_attentiveness','aff_spiritual_cooperation','aff_perseverance'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.selectedIndex = 0;
+      });
+      document.getElementById('total_credit').value = '';
+      document.getElementById('total_pass').value   = '';
+      document.getElementById('total_fail').value   = '';
+      updateSubjectCount();
+    }
+
+    function clearAllForm() {
+      if (!confirm('Clear all form data?')) return;
+      clearForm();
+      document.getElementById('studentSelector').value = '';
+      currentStudent = '';
+    }
+
+    function populateForm(data) {
+      if (!data) return;
+      document.getElementById('studentName').value      = data.studentName || '';
+      document.getElementById('studentClass').value     = data.studentClass || '';
+      document.getElementById('term').value             = data.term || '1st Term';
+      document.getElementById('academicYear').value     = data.academicYear || '';
+      document.getElementById('numberInClass').value    = data.numberInClass || '';
+      document.getElementById('classHighestScore').value = data.classHighestScore || '';
+
+      if (data.psychomotor) {
+        const pm = { psy_handwriting: data.psychomotor.Handwriting, psy_fluency: data.psychomotor.Fluency,
+          psy_games: data.psychomotor.Games, psy_craft: data.psychomotor.Craft,
+          psy_drawing_painting: data.psychomotor.Drawing, psy_handling_tools: data.psychomotor['Handling Tools'] };
+        for (const [id, val] of Object.entries(pm)) {
+          const el = document.getElementById(id);
+          if (el && val) for (let i = 0; i < el.options.length; i++) { if (el.options[i].text === val) { el.selectedIndex = i; break; } }
+        }
+      }
+      if (data.affective) {
+        const af = { aff_punctuality: data.affective.Punctuality, aff_attendance: data.affective.Attendance,
+          aff_reliability: data.affective.Reliability, aff_neatness: data.affective.Neatness,
+          aff_politeness: data.affective.Politeness, aff_honesty: data.affective.Honesty,
+          aff_relationship_staff: data.affective['Staff Relation'], aff_relationship_students: data.affective['Student Relation'],
+          aff_self_control: data.affective['Self Control'], aff_responsibility: data.affective.Responsibility,
+          aff_attentiveness: data.affective.Attentiveness, aff_spiritual_cooperation: data.affective['Spiritual Cooperation'],
+          aff_perseverance: data.affective.Perseverance };
+        for (const [id, val] of Object.entries(af)) {
+          const el = document.getElementById(id);
+          if (el && val) for (let i = 0; i < el.options.length; i++) { if (el.options[i].text === val) { el.selectedIndex = i; break; } }
+        }
+      }
+      if (data.subjects && data.subjects.length > 0) {
+        const body = document.getElementById('subjectsBody');
+        while (body.children.length > 0) body.firstChild.remove();
+        data.subjects.forEach(s => {
+          const { grade, remark } = getGrade(s.score || 0);
+          body.insertAdjacentHTML('beforeend', `
+            <tr>
+              <td style="text-align:left;padding-left:8px;"><input list="subjectsList" value="${s.subject||''}" required style="min-width:150px;text-align:left;"></td>
+              <td><input type="number" max="20" min="0" value="${s.test1||0}"></td>
+              <td><input type="number" max="20" min="0" value="${s.test2||0}"></td>
+              <td><input type="number" max="60" min="0" value="${s.exam||0}"></td>
+              <td><input readonly value="${s.score||0}"></td>
+              <td><span class="grade-badge grade-${grade}">${grade}</span></td>
+              <td>${remark}</td>
+              <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSubject(this)">&#10005;</button></td>
+            </tr>`);
+        });
+        updateSubjectCount();
+      }
+    }
+
+    // ============ GENERATE REPORT ============
+    async function calculateResults() {
+      const studentName = document.getElementById('studentName').value.trim();
+      if (!studentName) { alert('Please enter a student name.'); return; }
+      if (!currentClass) { alert('Please select a class first.'); return; }
+
+      const payload = calculateFormData();
+
+      const templateSelector = document.getElementById('templateSelector');
+      const templateName = templateSelector ? templateSelector.value : '';
+      if (!templateName) { alert('Please select a template first.'); return; }
+
+      try {
+        const result = await window.electronAPI.generateStudentDocx({
+          className: currentClass,
+          studentName,
+          templateName,
+          data: payload
+        });
+        if (result.success) {
+          alert(`Report "${result.fileName}" generated successfully!`);
+          await loadClassStats();
+          await loadStudents();
+        } else {
+          alert(`❌ Error: ${result.error}`);
+        }
+      } catch(e) {
+        console.error(e);
+        alert(`Error generating report: ${e.message}`);
+      }
+    }
+
+    // ============ LEADERBOARD ============
+    async function showLeaderboard() {
+      const lb = document.getElementById('leaderboard');
+      if (!currentClass) { alert('Please select a class first.'); return; }
+      lb.style.display = lb.style.display === 'none' ? '' : 'none';
+      if (lb.style.display === 'none') return;
+      try {
+        const students = await window.electronAPI.getStudents(currentClass);
+        const body = document.getElementById('leaderboardBody');
+        body.innerHTML = '';
+        if (!students || students.length === 0) {
+          body.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:var(--text-muted);">No records yet.</td></tr>';
+          return;
+        }
+        const sorted = students.filter(s => s.totalScore != null).sort((a, b) => b.totalScore - a.totalScore);
+        sorted.forEach((s, i) => {
+          body.insertAdjacentHTML('beforeend',
+            `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.className||currentClass}</td><td>${s.term||''}</td><td>${s.totalScore||0}</td><td>${s.average||''}</td></tr>`);
+        });
+      } catch(e) { console.error(e); }
+    }
+
+    // ============ CLASS MANAGEMENT ============
+    async function loadClasses() {
+      try {
+        const classes = await window.electronAPI.getClasses();
+        const sel = document.getElementById('classSelector');
+        sel.innerHTML = '<option value="">-- Select Class --</option>';
+        if (classes && classes.length > 0) {
+          classes.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+        }
+      } catch(e) { console.error('Error loading classes:', e); }
+    }
+
+    async function createNewClass() {
+      const className = await showPromptModal('New Class', 'e.g. JSS 1A, Primary 5');
+      if (!className) return;
+      try {
+        const result = await window.electronAPI.createClass({ className: className.trim() });
+        if (result && result.success) {
+          alert(`Class "${className}" created!`);
+          await loadClasses();
+          document.getElementById('classSelector').value = className.trim();
+          await handleClassChange();
+        } else {
+          alert(`❌ Failed: ${result ? result.error : 'Unknown error'}`);
+        }
+      } catch(e) { alert(`❌ Error: ${e.message}`); }
+    }
+
+    async function handleClassChange() {
+      const sel = document.getElementById('classSelector');
+      currentClass = sel.value;
+      const toHide = ['templateSection','templateActions','studentSection','studentActions'];
+      const classSettingsBtn = document.getElementById('classSettingsBtn');
+      if (!currentClass || currentClass === 'none') {
+        toHide.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        document.getElementById('classStats').style.display = 'none';
+        if (classSettingsBtn) classSettingsBtn.style.display = 'none';
+        return;
+      }
+      document.getElementById('studentClass').value = currentClass;
+      if (classSettingsBtn) classSettingsBtn.style.display = 'inline-flex';
+      const toShow = ['templateSection','templateActions','studentSection','studentActions'];
+      toShow.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'flex'; });
+      try {
+        await loadClassSettings();
+        applyClassSettingsToForm();
+        await loadTemplates();
+        await loadStudents();
+        await loadClassStats();
+      } catch(e) { console.error(e); }
+    }
+
+    // ============ TEMPLATE MANAGEMENT ============
+    async function loadTemplates() {
+      try {
+        const templates = await window.electronAPI.getTemplates(currentClass);
+        const sel = document.getElementById('templateSelector');
+        sel.innerHTML = '<option value="">-- Select Template --</option>';
+        if (templates && templates.length > 0)
+          templates.forEach(t => { const o = document.createElement('option'); o.value = t.name; o.textContent = t.name; sel.appendChild(o); });
+        else
+          sel.innerHTML += '<option value="default">No templates — upload one</option>';
+      } catch(e) {
+        document.getElementById('templateSelector').innerHTML = '<option value="">-- Select Template --</option><option value="default">Default Template</option>';
+      }
+    }
+
+    async function uploadTemplate() {
+      if (!currentClass) { alert('Please select a class first!'); return; }
+      try {
+        const filePath = await window.electronAPI.selectFile({
+          title: 'Select Word Template (.docx)',
+          filters: [{ name: 'Word Documents', extensions: ['docx'] }]
+        });
+        if (!filePath) return;
+        const result = await window.electronAPI.uploadTemplate({ className: currentClass, filePath });
+        if (result && result.success) {
+          alert(`Template "${result.templateName}" uploaded!`);
+          await loadTemplates();
+          document.getElementById('templateSelector').value = result.templateName;
+        } else {
+          alert(`❌ Failed: ${result ? result.error : 'Unknown error'}`);
+        }
+      } catch(e) { alert(`❌ Error: ${e.message}`); }
+    }
+
+    // ============ STUDENT MANAGEMENT ============
+    async function loadStudents() {
+      try {
+        const students = await window.electronAPI.getStudents(currentClass);
+        const sel = document.getElementById('studentSelector');
+        sel.innerHTML = '<option value="">-- Select Student --</option><option value="new">+ New Student</option>';
+        if (students && students.length > 0)
+          students.forEach(s => {
+            const date = new Date(s.lastModified).toLocaleDateString();
+            const o = document.createElement('option');
+            o.value = s.fileKey; o.textContent = `${s.name} (saved ${date})`; sel.appendChild(o);
+          });
+      } catch(e) { console.error(e); }
+    }
+
+    async function handleStudentChange() {
+      const sel = document.getElementById('studentSelector');
+      const fileKey = sel.value;
+      if (fileKey === 'new') { clearForm(); currentStudent = ''; return; }
+      if (!fileKey || !currentClass) return;
+      try {
+        const result = await window.electronAPI.loadStudent({ className: currentClass, studentName: fileKey });
+        if (result.success) { currentStudent = fileKey; populateForm(result.data); }
+        else alert(`❌ ${result.error}`);
+      } catch(e) { alert(`Error: ${e.message}`); }
+    }
+
+    async function saveProgress() {
+      if (!currentClass) { alert('Please select a class first!'); return; }
+      const name = document.getElementById('studentName').value.trim();
+      if (!name) { alert('Please enter a student name!'); return; }
+      const payload = calculateFormData();
+      try {
+        const result = await window.electronAPI.saveStudent({ className: currentClass, studentName: name, data: payload, isDraft: true });
+        if (result.success) { alert('Progress saved as draft!'); await loadStudents(); await loadClassStats(); }
+        else alert(`❌ ${result.error}`);
+      } catch(e) { alert(`Error: ${e.message}`); }
+    }
+
+    async function loadClassStats() {
+      try {
+        const stats = await window.electronAPI.getClassStats(currentClass);
+        document.getElementById('statTotal').textContent   = `Total: ${stats.totalStudents || 0}`;
+        document.getElementById('statDone').textContent    = `Completed: ${stats.completed || 0}`;
+        document.getElementById('statPending').textContent = `Pending: ${stats.pending || 0}`;
+        document.getElementById('statReports').textContent = `Reports: ${stats.totalReports || 0}`;
+        document.getElementById('classStats').style.display = 'flex';
+      } catch(e) {
+        console.error(e);
+        document.getElementById('classStats').style.display = 'flex';
+      }
+    }
+
+    // ============ TEST CONNECTION ============
+    async function testConnection() {
+      try {
+        const classes = await window.electronAPI.getClasses();
+        alert(`Connection OK! Found ${classes.length} class(es).`);
+      } catch(e) { alert(`Connection failed: ${e.message}`); }
+    }
+
+    // ============ INIT ============
+    window.addEventListener('DOMContentLoaded', () => {
+      updateSubjectCount();
+      if (window.electronAPI && typeof window.electronAPI.getClasses === 'function') {
+        loadClasses();
+      }
+      // Event listeners
+      document.getElementById('classSelector').addEventListener('change', handleClassChange);
+      document.getElementById('studentSelector').addEventListener('change', handleStudentChange);
+
+      // Debounced auto-calculate on number input
+      let _debounce = null;
+      document.addEventListener('input', e => {
+        if (e.target.type === 'number' && e.target.closest('#marksTable')) {
+          clearTimeout(_debounce);
+          _debounce = setTimeout(calculateFormData, 300);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

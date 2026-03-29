@@ -1,0 +1,13 @@
+node_modules/
+dist/
+Report-Card-Generator-Portable/
+*.log
+.DS_Store
+*.docx
+*.tmp
+reports/
+classes/
+package-lock.json
+.env
+.idea/
+*.asar
