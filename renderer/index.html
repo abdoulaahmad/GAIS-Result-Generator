@@ -167,6 +167,14 @@
     .leaderboard-table th { background: #1e3a5f; color: #fff; padding: 10px 10px; text-align: left; font-size: 12px; }
     .leaderboard-table td { border-bottom: 1px solid var(--border); padding: 9px 10px; }
     .leaderboard-table tbody tr:nth-child(odd) { background: #f8fafc; }
+    .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-weight: 700; color: #fff; font-size: 12px; }
+    .rank-1 { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); }
+    .rank-2 { background: linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%); }
+    .rank-3 { background: linear-gradient(135deg, #d4824f 0%, #b87534 100%); }
+    .rank-other { background: #6b7280; }
+    .student-row-1 { background: linear-gradient(90deg, rgba(251, 191, 36, 0.08) 0%, transparent 100%); }
+    .student-row-2 { background: linear-gradient(90deg, rgba(192, 192, 192, 0.08) 0%, transparent 100%); }
+    .student-row-3 { background: linear-gradient(90deg, rgba(212, 130, 79, 0.08) 0%, transparent 100%); }
 
     /* ===== CUSTOM MODAL ===== */
     .modal-overlay {
@@ -252,6 +260,14 @@
         <label>Class Highest Score</label>
         <input type="number" id="settingClassHighestScore" placeholder="e.g. 450">
       </div>
+      <div class="field">
+        <label>Default Subjects (for all students)</label>
+        <div style="border:1px solid var(--border-color);border-radius:4px;padding:10px;max-height:250px;overflow-y:auto;background:#f9f9f9;">
+          <div id="defaultSubjectsCheckboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <!-- Will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
         <button class="btn-cancel" onclick="closeClassSettings()">Cancel</button>
         <button class="btn-confirm" onclick="saveClassSettings()">Save</button>
@@ -314,16 +330,15 @@
           <div class="toolbar-actions" id="templateActions" style="display:none;">
             <button class="btn btn-outline" onclick="uploadTemplate()">Upload Template</button>
           </div>
-          <div class="toolbar-group" id="studentSection" style="display:none;flex-direction:column;align-items:flex-start;">
+          <div class="toolbar-group" id="studentSection" style="display:none;">
             <label>Student</label>
-            <div style="position:relative;width:100%;min-width:250px;">
-              <input type="text" id="studentSearch" placeholder="Type student name..." style="width:100%;padding:10px 12px;border:1px solid var(--border-color);border-radius:4px;font-size:14px;">
-              <div id="studentPreviewList" style="position:absolute;top:100%;left:0;right:0;max-height:250px;overflow-y:auto;background:#fff;border:1px solid var(--border-color);border-top:none;border-radius:0 0 4px 4px;display:none;z-index:1000;box-shadow:0 4px 6px rgba(0,0,0,0.1);"></div>
+            <div style="display:flex;gap:8px;align-items:center;width:100%;">
+              <input type="text" id="studentSearch" placeholder="Search..." style="flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;">
+              <select id="studentSelector" style="flex:1;min-width:150px;">
+                <option value="">-- Select Student --</option>
+                <option value="new">+ New Student</option>
+              </select>
             </div>
-            <select id="studentSelector" style="display:none;">
-              <option value="">-- Select Student --</option>
-              <option value="new">+ New Student</option>
-            </select>
           </div>
           </div>
           <div class="toolbar-actions" id="studentActions" style="display:none;">
@@ -500,17 +515,47 @@
 
     <!-- ===== LEADERBOARD ===== -->
     <div class="card" id="leaderboard" style="display:none;">
-      <div class="card-header">&#127942; Leaderboard</div>
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Leaderboard</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" id="leaderboardTabOverall" onclick="switchLeaderboardTab('overall')" style="background:#1e3a5f;color:#fff;">Overall</button>
+          <button class="btn btn-sm" id="leaderboardTabSubject" onclick="switchLeaderboardTab('subject')" style="background:transparent;border:1px solid var(--border);">By Subject</button>
+        </div>
+      </div>
       <div class="card-body" style="padding:0;">
-        <table class="leaderboard-table">
-          <thead>
-            <tr>
-              <th>#</th><th>Name</th><th>Class</th>
-              <th>Term</th><th>Total</th><th>Average</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboardBody"></tbody>
-        </table>
+        <!-- OVERALL LEADERBOARD -->
+        <div id="leaderboardOverallView">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>#</th><th>Name</th><th>Class</th>
+                <th>Term</th><th>Total</th><th>Average</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+        
+        <!-- SUBJECT PERFORMANCE LEADERBOARD -->
+        <div id="leaderboardSubjectView" style="display:none;padding:15px;">
+          <div style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap;">
+            <label>Select Subject:</label>
+            <select id="subjectFilterSelect" onchange="showSubjectLeaderboard(this.value)" style="padding:8px;border:1px solid var(--border);border-radius:4px;min-width:200px;">
+              <option value="">-- Choose Subject --</option>
+            </select>
+          </div>
+          <table class="leaderboard-table" id="subjectLeaderboardTable" style="display:none;">
+            <thead>
+              <tr>
+                <th>#</th><th>Student</th><th>Class</th><th>Score</th><th>Grade</th>
+              </tr>
+            </thead>
+            <tbody id="subjectLeaderboardBody"></tbody>
+          </table>
+          <div id="subjectLeaderboardEmpty" style="text-align:center;padding:30px;color:var(--text-muted);">
+            Select a subject to see rankings
+          </div>
+        </div>
       </div>
     </div>
 
@@ -640,7 +685,24 @@
     }
 
     // ============ CLASS SETTINGS ============
-    function openClassSettings() { document.getElementById('classSettingsPanel').classList.add('active'); }
+    function openClassSettings() {
+      document.getElementById('classSettingsPanel').classList.add('active');
+      populateDefaultSubjectsCheckboxes();
+    }
+    
+    function populateDefaultSubjectsCheckboxes() {
+      const datalist = document.getElementById('subjectsList');
+      const options = Array.from(datalist.querySelectorAll('option')).map(o => o.value);
+      const container = document.getElementById('defaultSubjectsCheckboxes');
+      
+      container.innerHTML = options.map((subject, idx) => `
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px;">
+          <input type="checkbox" class="default-subject-checkbox" value="${subject}">
+          <span>${subject}</span>
+        </label>
+      `).join('');
+    }
+    
     function closeClassSettings() { document.getElementById('classSettingsPanel').classList.remove('active'); }
     
     async function loadClassSettings() {
@@ -651,17 +713,29 @@
         document.getElementById('settingTerm').value = settings.term || '1st Term';
         document.getElementById('settingNextTermBegins').value = settings.nextTermBegins || '';
         document.getElementById('settingClassHighestScore').value = settings.classHighestScore || '';
+        
+        // Load default subjects
+        const defaultSubjects = settings.defaultSubjects || [];
+        const checkboxes = document.querySelectorAll('.default-subject-checkbox');
+        checkboxes.forEach(cb => {
+          cb.checked = defaultSubjects.includes(cb.value);
+        });
       } catch(e) { console.error('Error loading class settings:', e); }
     }
     
     async function saveClassSettings() {
       if (!currentClass) return;
       try {
+        // Collect selected default subjects
+        const checkboxes = document.querySelectorAll('.default-subject-checkbox:checked');
+        const defaultSubjects = Array.from(checkboxes).map(cb => cb.value);
+        
         const settings = {
           academicYear: document.getElementById('settingAcademicYear').value,
           term: document.getElementById('settingTerm').value,
           nextTermBegins: document.getElementById('settingNextTermBegins').value,
-          classHighestScore: document.getElementById('settingClassHighestScore').value
+          classHighestScore: document.getElementById('settingClassHighestScore').value,
+          defaultSubjects: defaultSubjects
         };
         const result = await window.electronAPI.saveClassSettings({ className: currentClass, settings });
         if (result.success) {
@@ -683,6 +757,37 @@
       if (term) document.getElementById('term').value = term;
       if (nextTermBegins) document.getElementById('nextTermBegins').value = nextTermBegins;
       if (classHighestScore) document.getElementById('classHighestScore').value = classHighestScore;
+    }
+    
+    async function addDefaultSubjectsToForm() {
+      if (!currentClass) return;
+      try {
+        // Load class settings to get default subjects
+        const settings = await window.electronAPI.getClassSettings(currentClass);
+        const defaultSubjects = settings.defaultSubjects || [];
+        
+        if (defaultSubjects.length === 0) return;
+        
+        // Clear existing subjects and add defaults
+        const tbody = document.getElementById('subjectsBody');
+        tbody.innerHTML = '';
+        
+        let rowNum = 1;
+        defaultSubjects.forEach((subject, idx) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="text-align:center;color:var(--text-muted);min-width:40px;"><small>${rowNum}</small></td>
+            <td style="text-align:left;padding-left:8px;"><input list="subjectsList" value="${subject}" required style="min-width:150px;text-align:left;"></td>
+            <td style="text-align:center;"><input type="number" min="0" max="100" placeholder="Score" required></td>
+            <td style="text-align:center;"><input type="number" min="0" max="100" placeholder="Grade" required></td>
+            <td style="text-align:center;"><select style="text-align:center;"><option>Pass</option><option>Fail</option></select></td>
+            <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSubject(this)">&#10005;</button></td>
+          `;
+          tbody.appendChild(row);
+          rowNum++;
+        });
+        updateSubjectCount();
+      } catch(e) { console.error('Error adding default subjects:', e); }
     }
 
     // ============ SUBJECT MANAGEMENT ============
@@ -911,6 +1016,8 @@
     }
 
     // ============ LEADERBOARD ============
+    let allStudentsForLeaderboard = [];
+    
     async function showLeaderboard() {
       const lb = document.getElementById('leaderboard');
       if (!currentClass) { alert('Please select a class first.'); return; }
@@ -918,18 +1025,169 @@
       if (lb.style.display === 'none') return;
       try {
         const students = await window.electronAPI.getStudents(currentClass);
-        const body = document.getElementById('leaderboardBody');
-        body.innerHTML = '';
-        if (!students || students.length === 0) {
-          body.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:var(--text-muted);">No records yet.</td></tr>';
-          return;
+        
+        // Load full student data including marks
+        allStudentsForLeaderboard = [];
+        for (const student of (students || [])) {
+          try {
+            const result = await window.electronAPI.loadStudent({ 
+              className: currentClass, 
+              studentName: student.fileKey 
+            });
+            if (result.success && result.data) {
+              allStudentsForLeaderboard.push(result.data);
+            }
+          } catch(e) { 
+            console.error('Loading student data:', e); 
+          }
         }
-        const sorted = students.filter(s => s.totalScore != null).sort((a, b) => b.totalScore - a.totalScore);
-        sorted.forEach((s, i) => {
-          body.insertAdjacentHTML('beforeend',
-            `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.className||currentClass}</td><td>${s.term||''}</td><td>${s.totalScore||0}</td><td>${s.average||''}</td></tr>`);
-        });
+        
+        // Show overall leaderboard by default
+        switchLeaderboardTab('overall');
+        
+        // Populate subject filter dropdown
+        populateSubjectFilter();
       } catch(e) { console.error(e); }
+    }
+
+    function populateSubjectFilter(students) {
+      const select = document.getElementById('subjectFilterSelect');
+      
+      // Get subjects from the datalist in the form
+      const subjectsList = document.getElementById('subjectsList');
+      const allSubjects = Array.from(subjectsList.options)
+        .map(opt => opt.value)
+        .filter(val => val.trim() !== '')
+        .sort();
+      
+      select.innerHTML = '<option value="">-- Choose Subject --</option>';
+      allSubjects.forEach(subject => {
+        const opt = document.createElement('option');
+        opt.value = subject;
+        opt.textContent = subject;
+        select.appendChild(opt);
+      });
+    }
+
+    function switchLeaderboardTab(tab) {
+      const overallView = document.getElementById('leaderboardOverallView');
+      const subjectView = document.getElementById('leaderboardSubjectView');
+      const tabOverall = document.getElementById('leaderboardTabOverall');
+      const tabSubject = document.getElementById('leaderboardTabSubject');
+      
+      if (tab === 'overall') {
+        overallView.style.display = '';
+        subjectView.style.display = 'none';
+        tabOverall.style.background = '#1e3a5f';
+        tabOverall.style.color = '#fff';
+        tabSubject.style.background = 'transparent';
+        tabSubject.style.color = 'inherit';
+        showOverallLeaderboard();
+      } else {
+        overallView.style.display = 'none';
+        subjectView.style.display = '';
+        tabOverall.style.background = 'transparent';
+        tabOverall.style.color = 'inherit';
+        tabSubject.style.background = '#1e3a5f';
+        tabSubject.style.color = '#fff';
+      }
+    }
+
+    function showOverallLeaderboard() {
+      const body = document.getElementById('leaderboardBody');
+      body.innerHTML = '';
+      
+      if (!allStudentsForLeaderboard || allStudentsForLeaderboard.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:var(--text-muted);">No records yet.</td></tr>';
+        return;
+      }
+      
+      // Calculate averages and sort by performance
+      const studentsWithAvg = allStudentsForLeaderboard.map(s => {
+        const scores = (s.subjects || []).map(subj => subj.score).filter(v => v && !isNaN(v)).map(Number);
+        const avg = scores.length > 0 ? (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(2) : 0;
+        const totalScore = scores.reduce((a, b) => a + b, 0);
+        return {...s, average: avg, totalScore};
+      });
+      
+      const sorted = studentsWithAvg.sort((a, b) => {
+        const avgDiff = b.average - a.average;
+        return avgDiff !== 0 ? avgDiff : b.totalScore - a.totalScore;
+      });
+      
+      sorted.forEach((s, i) => {
+        const rank = i + 1;
+        const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+        const rowClass = rank === 1 ? 'student-row-1' : rank === 2 ? 'student-row-2' : rank === 3 ? 'student-row-3' : '';
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+        
+        body.insertAdjacentHTML('beforeend',
+          `<tr class="${rowClass}">
+            <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+            <td><strong>${medal} ${s.name}</strong></td>
+            <td>${s.className||currentClass}</td>
+            <td>${s.term||'-'}</td>
+            <td style="text-align:center;font-weight:600;">${s.totalScore||0}</td>
+            <td style="text-align:center;font-weight:600;color:${parseFloat(s.average) >= 70 ? '#16a34a' : parseFloat(s.average) >= 50 ? '#f59e0b' : '#dc2626'};">${s.average}</td>
+          </tr>`);
+      });
+    }
+
+    function showSubjectLeaderboard(subject) {
+      const tbody = document.getElementById('subjectLeaderboardBody');
+      const table = document.getElementById('subjectLeaderboardTable');
+      const empty = document.getElementById('subjectLeaderboardEmpty');
+      
+      if (!subject) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      
+      // Get scores for this subject
+      const scoresData = allStudentsForLeaderboard
+        .map(s => {
+          let score = null;
+          if (s.subjects && Array.isArray(s.subjects)) {
+            const subjData = s.subjects.find(subj => subj.subject === subject);
+            score = subjData ? subjData.score : null;
+          }
+          return {
+            name: s.name,
+            className: s.className || currentClass,
+            score: score,
+            grade: score === null ? '-' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : score >= 50 ? 'D' : 'F'
+          };
+        })
+        .filter(s => s.score !== null)
+        .sort((a, b) => b.score - a.score);
+      
+      tbody.innerHTML = '';
+      if (scoresData.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        empty.textContent = `No scores recorded for ${subject}`;
+        return;
+      }
+      
+      scoresData.forEach((s, i) => {
+        const rank = i + 1;
+        const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+        const gradeColor = s.grade === 'A' ? '#16a34a' : s.grade === 'B' ? '#2563eb' : s.grade === 'C' ? '#f59e0b' : '#dc2626';
+        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+        
+        tbody.insertAdjacentHTML('beforeend',
+          `<tr style="${rank <= 3 ? 'background:' + (rank === 1 ? '#fef3c7' : rank === 2 ? '#f0f9ff' : '#fef2f2') : ''}">
+            <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+            <td><strong>${medal} ${s.name}</strong></td>
+            <td>${s.className}</td>
+            <td style="text-align:center;font-weight:600;font-size:16px;">${s.score}</td>
+            <td style="text-align:center;font-weight:700;color:${gradeColor};font-size:16px;">${s.grade}</td>
+          </tr>`);
+      });
+      
+      table.style.display = '';
+      empty.style.display = 'none';
     }
 
     // ============ CLASS MANAGEMENT ============
@@ -1041,69 +1299,34 @@
 
     function setupStudentSearch() {
       const searchBox = document.getElementById('studentSearch');
-      const previewList = document.getElementById('studentPreviewList');
+      const selector = document.getElementById('studentSelector');
       
       searchBox.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
+        const options = Array.from(selector.options);
         
-        if (!query) {
-          previewList.style.display = 'none';
-          return;
-        }
-        
-        // Filter students
-        const matches = allStudents.filter(s => 
-          s.name.toLowerCase().includes(query)
-        );
-        
-        // Show/hide preview list
-        if (matches.length === 0) {
-          previewList.style.display = 'none';
-          return;
-        }
-        
-        previewList.innerHTML = matches.map(s => {
-          const date = new Date(s.lastModified).toLocaleDateString();
-          return `<div style="padding:10px 12px;border-bottom:1px solid var(--border-color);cursor:pointer;hover-background:#f5f5f5;" 
-                    onclick="selectStudentFromPreview('${s.fileKey}', '${s.name.replace(/'/g, "\\'")}')">
-                    <strong>${s.name}</strong><br>
-                    <small style="color:var(--text-muted);">Saved: ${date}</small>
-                  </div>`;
-        }).join('');
-        previewList.style.display = 'block';
+        options.forEach(opt => {
+          if (opt.value === '' || opt.value === 'new') {
+            opt.style.display = '';
+          } else {
+            const match = opt.textContent.toLowerCase().includes(query);
+            opt.style.display = match ? '' : 'none';
+          }
+        });
       });
       
-      // Hide preview when clicking outside
-      document.addEventListener('click', (e) => {
-        if (e.target.id !== 'studentSearch') {
-          previewList.style.display = 'none';
-        }
+      // Clear search when selection changes
+      selector.addEventListener('change', () => {
+        searchBox.value = '';
+        const options = Array.from(selector.options);
+        options.forEach(opt => opt.style.display = '');
       });
-    }
-
-    async function selectStudentFromPreview(fileKey, studentName) {
-      const searchBox = document.getElementById('studentSearch');
-      const previewList = document.getElementById('studentPreviewList');
-      
-      try {
-        const result = await window.electronAPI.loadStudent({ className: currentClass, studentName: fileKey });
-        if (result.success) {
-          currentStudent = fileKey;
-          populateForm(result.data);
-          searchBox.value = '';
-          previewList.style.display = 'none';
-        } else {
-          alert(`Error: ${result.error}`);
-        }
-      } catch(e) {
-        alert(`Error loading student: ${e.message}`);
-      }
     }
 
     async function handleStudentChange() {
       const sel = document.getElementById('studentSelector');
       const fileKey = sel.value;
-      if (fileKey === 'new') { clearForm(); currentStudent = ''; return; }
+      if (fileKey === 'new') { clearForm(); currentStudent = ''; await addDefaultSubjectsToForm(); return; }
       if (!fileKey || !currentClass) return;
       try {
         const result = await window.electronAPI.loadStudent({ className: currentClass, studentName: fileKey });
@@ -1156,12 +1379,29 @@
       document.getElementById('classSelector').addEventListener('change', handleClassChange);
       document.getElementById('studentSelector').addEventListener('change', handleStudentChange);
 
-      // Debounced auto-calculate on number input
+      // Debounced auto-calculate and auto-save on number input
       let _debounce = null;
+      let _autoSaveDebounce = null;
       document.addEventListener('input', e => {
         if (e.target.type === 'number' && e.target.closest('#marksTable')) {
           clearTimeout(_debounce);
           _debounce = setTimeout(calculateFormData, 300);
+          
+          // Auto-save marks after calculation
+          clearTimeout(_autoSaveDebounce);
+          _autoSaveDebounce = setTimeout(async () => {
+            if (currentClass && document.getElementById('studentName').value.trim()) {
+              const payload = calculateFormData();
+              try {
+                await window.electronAPI.saveStudent({ 
+                  className: currentClass, 
+                  studentName: document.getElementById('studentName').value.trim(), 
+                  data: payload, 
+                  isDraft: true 
+                });
+              } catch(e) { console.error('Auto-save error:', e); }
+            }
+          }, 800);
         }
       });
     });
